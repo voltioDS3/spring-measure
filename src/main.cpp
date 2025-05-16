@@ -11,11 +11,17 @@ void setup() {
 }
 
 void loop(){
-  
+  #ifdef DEBUG
+    Serial.print("velocidad angular: ");
+    Serial.println(angular_velocity);
+    
+    Serial.print("Velocidad lineal: ");
+    Serial.println(getLinearVelocity());
+  #endif
   encoderData = String(counter);
   encoderDataCharacteristic->setValue(encoderData.c_str());
   encoderDataCharacteristic->notify();
   counter++;
-  delay(2000);
+  delay(1000);
 
 }

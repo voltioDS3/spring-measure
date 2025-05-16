@@ -16,5 +16,6 @@
 
 extern BLECharacteristic *encoderDataCharacteristic;
 extern int encoder_count;
-
+extern volatile float angular_velocity;
+extern volatile float linear_velocity;
 #endif
