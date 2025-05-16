@@ -9,11 +9,12 @@
 #include <BLE2902.h>
 
 #include "bluetooth.h"
+#include "encoder.h"
 
 #define DEBUG
-#define RELEASE
+// #define RELEASE
 
 extern BLECharacteristic *encoderDataCharacteristic;
-
+extern int encoder_count;
 
 #endif

@@ -7,6 +7,7 @@ String encoderData;
 void setup() {
   Serial.begin(115200);
   initBLE(); 
+  initEncoder();
 }
 
 void loop(){
