@@ -11,7 +11,7 @@
 #include "bluetooth.h"
 #include "encoder.h"
 
-#define DEBUG
+// #define DEBUG
 // #define RELEASE
 
 extern BLECharacteristic *encoderDataCharacteristic;
