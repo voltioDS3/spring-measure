@@ -9,11 +9,11 @@
 #define TIMER_INDEX           TIMER_0
 
 #define ENCODER_PIN 19
-#define ENCODER_N 18
-#define ANGLE_PER_TRIGGER ENCODER_N/360
-#define ENCODER_R 0.047
+#define ENCODER_N 18 // ranuras por vuelta
+#define ENCODER_R 0.042/2 // metros
 void INT0_ISR(void);
 void initEncoder();
 void IRAM_ATTR timerInterrupt();
 float getLinearVelocity();
+float getLinearDistance();
 #endif

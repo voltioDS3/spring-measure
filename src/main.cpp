@@ -17,6 +17,9 @@ void loop(){
     
     Serial.print("Velocidad lineal: ");
     Serial.println(getLinearVelocity());
+
+    Serial.print("distancia lineal: ");
+    Serial.println(getLinearDistance());
   #endif
   encoderData = String(counter);
   encoderDataCharacteristic->setValue(encoderData.c_str());

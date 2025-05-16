@@ -2,7 +2,6 @@
 int encoder_count = 0;
 volatile unsigned long last_time = 0;
 volatile float angular_velocity = 0;
-volatile float linear_velocity = 0;
 hw_timer_t *timer = NULL;
 void initEncoder(){
     pinMode(ENCODER_PIN,INPUT);
@@ -34,4 +33,8 @@ void IRAM_ATTR timerInterrupt(){
 
 float getLinearVelocity(){
     return angular_velocity*ENCODER_R;
+}
+
+float getLinearDistance(){
+    return encoder_count * (2*PI/ENCODER_N) * ENCODER_R;
 }
