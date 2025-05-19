@@ -1,4 +1,3 @@
-// App.js
 import React, { useEffect, useState } from 'react';
 import {
   Button,
@@ -9,9 +8,11 @@ import {
   Platform,
 } from 'react-native';
 import { BleManager } from 'react-native-ble-plx';
+import base64 from 'react-native-base64';
 
-const SERVICE_UUID        = '00001234-0000-1000-8000-00805f9b34fb';
-const CHARACTERISTIC_UUID = '00005678-0000-1000-8000-00805f9b34fb';
+const SERVICE_UUID                   = "dc3048cc-4347-4256-8a06-6f0af67f2132";
+const CHARACTERISTIC_UUID            = "08a90be8-81a3-4527-911d-38162f772296";
+const CONTROL_CHARACTERISTIC_UUID    = "2139c448-0991-423d-8153-30b115faeca0";
 
 async function requestBlePermissions() {
   if (Platform.OS === 'android' && Platform.Version >= 31) {
@@ -20,12 +21,10 @@ async function requestBlePermissions() {
       PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
       PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
     ]);
-    const allGranted = Object.values(granted).every(status => status === 'granted');
-    if (!allGranted) {
+    if (!Object.values(granted).every(status => status === 'granted')) {
       throw new Error('No se otorgaron todos los permisos Bluetooth necesarios');
     }
   } else if (Platform.OS === 'android') {
-    // Android <12 necesita ACCESS_FINE_LOCATION para escaneo BLE
     const granted = await PermissionsAndroid.request(
       PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
     );
@@ -36,44 +35,44 @@ async function requestBlePermissions() {
 }
 
 export default function App() {
-  const [manager]   = useState(() => new BleManager());
-  const [devices, setDevices]   = useState([]);
+  const [manager]      = useState(() => new BleManager());
+  const [devices, setDevices] = useState([]);
   const [connected, setConnected] = useState(null);
+  const [deviceObj, setDeviceObj] = useState(null);
+  const [subscription, setSubscription] = useState(null);
 
   useEffect(() => {
     return () => {
+      // limpiar todo al desmontar
+      subscription && subscription.remove();
       manager.destroy();
     };
-  }, []);
+  }, [subscription]);
 
   const scanAndConnect = async () => {
-    // 1. Pedir permisos en Android
     try {
       await requestBlePermissions();
     } catch (err) {
-      console.warn('Permisos BLE no concedidos:', err.message);
+      console.warn(err.message);
       return;
     }
 
-    // 2. Limpiar lista y empezar escaneo
     setDevices([]);
     manager.startDeviceScan(null, null, (error, device) => {
       if (error) {
         console.warn('Scan error:', error);
         return;
       }
-
-      // 3. Filtrar por dispositivo ESP32 (ajusta el criterio si hace falta)
-      if (device && device.name?.includes('ESP32')) {
+      if (device && device.name?.includes('encoder-sensor')) {
         manager.stopDeviceScan();
-
         device.connect()
           .then(dev => {
             setConnected(dev.id);
+            setDeviceObj(dev);
             return dev.discoverAllServicesAndCharacteristics();
           })
           .then(dev => {
-            // Leer característica inicial
+            // leer y luego subscribir
             return dev.readCharacteristicForService(
               SERVICE_UUID,
               CHARACTERISTIC_UUID
@@ -81,28 +80,53 @@ export default function App() {
           })
           .then(char => {
             console.log('Valor leído:', char.value);
-            // Suscribirse a notificaciones
-            manager.monitorCharacteristicForDevice(
-              connected,
-              SERVICE_UUID,
-              CHARACTERISTIC_UUID,
-              (err, c) => {
-                if (err) console.warn('Monitor error:', err);
-                else console.log('Notificación:', c.value);
-              }
-            );
           })
           .catch(err => console.warn('Conexión error:', err));
       } else if (device && !devices.find(d => d.id === device.id)) {
-        // Añadir a lista de descubiertos
         setDevices(prev => [...prev, device]);
       }
     });
   };
 
+  const startMeasurement = async () => {
+    if (!deviceObj) return;
+    // escribe 0x01 (base64 "AQ==")
+    await deviceObj.writeCharacteristicWithResponseForService(
+      SERVICE_UUID,
+      CONTROL_CHARACTERISTIC_UUID,
+      base64.encode(String.fromCharCode(0x01))
+    );
+  };
+
+  const stopMeasurement = async () => {
+    if (!deviceObj) return;
+    // escribe 0x00 (base64 "AA==")
+    await deviceObj.writeCharacteristicWithResponseForService(
+      SERVICE_UUID,
+      CONTROL_CHARACTERISTIC_UUID,
+      base64.encode(String.fromCharCode(0x00))
+    );
+  };
+
   return (
     <View style={{ flex: 1, padding: 20 }}>
       <Button title="Escanear y conectar" onPress={scanAndConnect} />
+
+      {connected && (
+        <>
+          <Text style={{ marginTop: 20, color: 'green' }}>
+            Conectado a: {connected}
+          </Text>
+
+          <View style={{ marginVertical: 10 }}>
+            <Button title="Empezar medición" onPress={startMeasurement} />
+          </View>
+
+          <View style={{ marginBottom: 20 }}>
+            <Button title="Parar medición" onPress={stopMeasurement} />
+          </View>
+        </>
+      )}
 
       <Text style={{ marginTop: 20, fontWeight: 'bold' }}>
         Dispositivos encontrados:
@@ -116,12 +140,6 @@ export default function App() {
           </Text>
         )}
       />
-
-      {connected && (
-        <Text style={{ marginTop: 20, color: 'green' }}>
-          Conectado a: {connected}
-        </Text>
-      )}
     </View>
   );
 }
