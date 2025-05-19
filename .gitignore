@@ -3,3 +3,29 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+# Ignorar node_modules y carpetas de caché dentro de SpringMeasure
+SpringMeasure/node_modules/
+SpringMeasure/.expo/
+SpringMeasure/.expo-shared/
+SpringMeasure/.git/
+SpringMeasure/coverage/
+SpringMeasure/.DS_Store
+SpringMeasure/.vscode/
+SpringMeasure/.idea/
+SpringMeasure/.env
+SpringMeasure/.env.*
+
+# Metro y React Native cache
+SpringMeasure/.metro-cache/
+SpringMeasure/tmp/
+SpringMeasure/dist/
+
+# Archivos de log
+SpringMeasure/npm-debug.log*
+SpringMeasure/yarn-debug.log*
+SpringMeasure/yarn-error.log*
+SpringMeasure/expo-debug.log
+
+# Android/iOS si haces eject
+SpringMeasure/android/
+SpringMeasure/ios/
