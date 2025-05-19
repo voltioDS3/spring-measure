@@ -1,6 +1,8 @@
 #include "main.h"
 
 BLECharacteristic *encoderDataCharacteristic;
+BLECharacteristic *controlCharacteristic;
+bool measuring = 0;
 int counter = 0;
 String encoderData;
 
@@ -45,7 +47,7 @@ void setup() {
 void loop(){
   unsigned long now = millis();
   #ifdef DEBUG
-  if(now - lastSampleTime > DEBUG_SAMPLE_INTERVAL_MS){
+  if(measuring && (now - lastSampleTime > DEBUG_SAMPLE_INTERVAL_MS)){
  
     Serial.print("velocidad angular: ");
     Serial.println(angular_velocity);
@@ -59,8 +61,7 @@ void loop(){
   }
   #endif
  
-
-  if (now - lastSampleTime >= SAMPLE_PERIOD_MS) {
+  if (measuring && (now - lastSampleTime >= SAMPLE_PERIOD_MS)) {
     lastSampleTime += SAMPLE_PERIOD_MS;
     float linear_velocity  = getLinearVelocity();
     bufferSample(linear_velocity);
