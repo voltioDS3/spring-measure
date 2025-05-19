@@ -13,7 +13,7 @@
 
 // #define DEBUG
 // #define RELEASE
-
+#define DEBUG_SAMPLE_INTERVAL_MS 500
 extern BLECharacteristic *encoderDataCharacteristic;
 extern int encoder_count;
 extern volatile float angular_velocity;

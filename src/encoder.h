@@ -11,6 +11,9 @@
 #define ENCODER_PIN 19
 #define ENCODER_N 18 // ranuras por vuelta
 #define ENCODER_R 0.042/2 // metros
+
+#define SAMPLE_PERIOD_MS 10
+
 void INT0_ISR(void);
 void initEncoder();
 void IRAM_ATTR timerInterrupt();
