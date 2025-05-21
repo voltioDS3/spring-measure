@@ -166,37 +166,16 @@ export default function App() {
   };
 
   return (
-    <View style={{ flex: 1, padding: 20 }}>
-      <Button title="Escanear y conectar" onPress={scanAndConnect} />
-
-      {connectedId && (
-        <>
-          <Text style={{ marginTop: 20, color: 'green' }}>
-            Conectado a: {connectedId}
-          </Text>
-
-          <View style={{ marginVertical: 10 }}>
-            <Button title="Empezar medición" onPress={startMeasurement} />
-          </View>
-
-          <View style={{ marginBottom: 20 }}>
-            <Button title="Parar medición" onPress={stopMeasurement} />
-          </View>
-        </>
+      <View style={{ flexDirection: "column", height:"100%", width:"100%", justifyContent:'center', rowGap:"10"}}>
+        {!connectedId && (
+        <Button title="Conectar BLE" onPress={scanAndConnect} />
       )}
-
-      <Text style={{ marginTop: 20, fontWeight: 'bold' }}>
-        Dispositivos encontrados:
-      </Text>
-      <FlatList
-        data={devices}
-        keyExtractor={item => item.id}
-        renderItem={({ item }) => (
-          <Text style={{ paddingVertical: 4 }}>
-            {item.name || item.id}
-          </Text>
-        )}
-      />
+      {connectedId && (
+        <Button title="Empezar medición" onPress={startMeasurement} />
+      )}
+      {connectedId && (
+        <Button title="Detener medición" onPress={stopMeasurement} />
+      )}
     </View>
   );
 }
