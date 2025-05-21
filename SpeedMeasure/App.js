@@ -3,37 +3,40 @@ import {
   Button,
   View,
   Text,
-  FlatList,
-  PermissionsAndroid,
+  Dimensions,
   Platform,
+  PermissionsAndroid,
 } from 'react-native';
 import { BleManager } from 'react-native-ble-plx';
-import base64, { decode } from 'react-native-base64';
+import base64 from 'react-native-base64';
+import SummaryChart from './src/services/components/SummaryChart';
 
-const SERVICE_UUID                = "dc3048cc-4347-4256-8a06-6f0af67f2132";
-const CHARACTERISTIC_UUID         = "08a90be8-81a3-4527-911d-38162f772296";
-const CONTROL_CHARACTERISTIC_UUID = "2139c448-0991-423d-8153-30b115faeca0";
+const SERVICE_UUID = 'dc3048cc-4347-4256-8a06-6f0af67f2132';
+const CHARACTERISTIC_UUID = '08a90be8-81a3-4527-911d-38162f772296';
+const CONTROL_CHARACTERISTIC_UUID = '2139c448-0991-423d-8153-30b115faeca0';
 
+const data = [
+    { x: 10, y: 20 },
+    { x: 20, y: 45 },
+    { x: 30, y: 28 },
+    { x: 40, y: 80 },
+    { x: 50, y: 99 },
+  ];
 
 function parseEncoderData(base64value) {
   const raw = base64.decode(base64value);
-  // raw es un string con caracteres cuyo código corresponde a un byte
   const bytes = new Uint8Array(raw.length);
   for (let i = 0; i < raw.length; i++) {
     bytes[i] = raw.charCodeAt(i);
   }
 
   const samples = [];
-  // Cada muestra tiene 4 bytes: 2 para index, 2 para velocidad
   for (let i = 0; i + 3 < bytes.length; i += 4) {
-    // Leer index (2 bytes little endian)
     const index = bytes[i] | (bytes[i + 1] << 8);
-    // Leer velocidad (2 bytes little endian)
     const velocity = bytes[i + 2] | (bytes[i + 3] << 8);
-
+    // convertir si es necesario (signed?)
     samples.push({ index, velocity });
   }
-
   return samples;
 }
 
@@ -61,16 +64,15 @@ async function requestBlePermissions() {
 
 export default function App() {
   const [manager] = useState(() => new BleManager());
-  const [devices, setDevices] = useState([]);
   const [connectedId, setConnectedId] = useState(null);
   const [deviceObj, setDeviceObj] = useState(null);
   const [subscription, setSubscription] = useState(null);
+  const [measuring, setMeasuring] = useState(false);
+  const [samplesData, setSamplesData] = useState([]);
 
   useEffect(() => {
     return () => {
-      // limpiar recursos al desmontar
       subscription?.remove();
-      
     };
   }, [subscription]);
 
@@ -82,36 +84,19 @@ export default function App() {
       return;
     }
 
-    setDevices([]);
     manager.startDeviceScan(null, null, async (error, device) => {
       if (error) {
         console.warn('Error en el escaneo:', error);
         return;
       }
-
       if (!device?.id) return;
-
-      // evitar duplicados
-      setDevices(prev =>
-        prev.some(d => d.id === device.id) ? prev : [...prev, device]
-      );
-
       if (device.name?.includes('encoder-sensor')) {
         manager.stopDeviceScan();
-
         try {
           const connectedDevice = await device.connect();
           setConnectedId(connectedDevice.id);
           setDeviceObj(connectedDevice);
-
           await connectedDevice.discoverAllServicesAndCharacteristics();
-
-          const characteristic = await connectedDevice.readCharacteristicForService(
-            SERVICE_UUID,
-            CHARACTERISTIC_UUID
-          );
-
-          console.log('Valor leído:', characteristic.value);
         } catch (err) {
           console.warn('Error de conexión:', err);
         }
@@ -121,13 +106,32 @@ export default function App() {
 
   const startMeasurement = async () => {
     if (!deviceObj) return;
-
+    setSamplesData([]);
+    setMeasuring(true);
     try {
       await deviceObj.writeCharacteristicWithResponseForService(
         SERVICE_UUID,
         CONTROL_CHARACTERISTIC_UUID,
         base64.encode(String.fromCharCode(0x01))
       );
+
+      const sub = deviceObj.monitorCharacteristicForService(
+        SERVICE_UUID,
+        CHARACTERISTIC_UUID,
+        (error, characteristic) => {
+          if (error) {
+            console.warn('Error al monitorear:', error);
+            return;
+          }
+          if (characteristic?.value) {
+            const newSamples = parseEncoderData(characteristic.value);
+            // console.log(newSamples);
+            setSamplesData(prev => [...prev, ...newSamples]);
+            console.log(samplesData);
+          }
+        }
+      );
+      setSubscription(sub);
     } catch (err) {
       console.warn('Error al empezar medición:', err);
     }
@@ -135,7 +139,6 @@ export default function App() {
 
   const stopMeasurement = async () => {
     if (!deviceObj) return;
-
     try {
       await deviceObj.writeCharacteristicWithResponseForService(
         SERVICE_UUID,
@@ -145,37 +148,26 @@ export default function App() {
     } catch (err) {
       console.warn('Error al parar medición:', err);
     }
-    const sub = deviceObj.monitorCharacteristicForService(
-    SERVICE_UUID,
-    CHARACTERISTIC_UUID,
-    (error, characteristic) => {
-      if (error) {
-        console.warn('Error al suscribirse:', error);
-        return;
-      }
-      if (characteristic?.value) {
-        const samples = parseEncoderData(characteristic.value);
-        console.log(samples);
-        // console.log('Dato recibido:', parseEncoderData(decoded));
-        // Aquí podrías actualizar el estado si quieres mostrarlo en pantalla
-      }
-    }
-  );
-
-  setSubscription(sub);
+    subscription?.remove();
+    setSubscription(null);
+    setMeasuring(false);
   };
 
+  // preparar datos para el gráfico
+  const times = samplesData.map(s => (s.index * 0.01).toFixed(2));
+  const velocities = samplesData.map(s => s.velocity);
+
   return (
-      <View style={{ flexDirection: "column", height:"100%", width:"100%", justifyContent:'center', rowGap:"10"}}>
-        {!connectedId && (
-        <Button title="Conectar BLE" onPress={scanAndConnect} />
-      )}
-      {connectedId && (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+
+      {!connectedId && <Button title="Conectar BLE" onPress={scanAndConnect} />}
+      {connectedId && !measuring && (
         <Button title="Empezar medición" onPress={startMeasurement} />
       )}
-      {connectedId && (
+      {connectedId && measuring && (
         <Button title="Detener medición" onPress={stopMeasurement} />
       )}
+      <SummaryChart data={samplesData} />
     </View>
   );
 }
