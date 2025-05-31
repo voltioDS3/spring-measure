@@ -167,7 +167,9 @@ export default function App() {
       {connectedId && measuring && (
         <Button title="Detener medición" onPress={stopMeasurement} />
       )}
-      <SummaryChart data={samplesData} />
+      {!measuring && (
+        <SummaryChart data={samplesData} />)}
+      
     </View>
   );
 }

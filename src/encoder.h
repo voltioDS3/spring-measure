@@ -4,7 +4,7 @@
 #include "driver/timer.h"
 
 #define TIMER_DIVIDER         80          // 80 MHz / 80 = 1 MHz (1 tick = 1 µs)
-#define TIMER_INTERVAL_US     200000      // 200 ms = 200,000 µs
+#define TIMER_INTERVAL_US     70000      // 200 ms = 200,000 µs
 #define TIMER_GROUP           TIMER_GROUP_0
 #define TIMER_INDEX           TIMER_0
 

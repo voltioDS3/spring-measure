@@ -1,8 +1,7 @@
 import * as React from 'react';
-import { Text, View, Dimensions } from 'react-native';
+import { Text, View, useWindowDimensions, StyleSheet } from 'react-native';
 import { LineChart } from 'react-native-gifted-charts';
 
-// Función para suavizar con media móvil simple
 function smoothData(data, windowSize = 5) {
   const smoothed = [];
   for (let i = 0; i < data.length; i++) {
@@ -16,41 +15,37 @@ function smoothData(data, windowSize = 5) {
 }
 
 export default function SummaryChart({ data = [] }) {
+  const { width: screenWidth } = useWindowDimensions();
+
   // Mapear datos originales
   const rawData = data.map(({ index, velocity }) => ({
-    value: velocity/1000,
+    value: velocity / 1000,
     label: (index * 0.01).toFixed(2) + 's',
   }));
 
   if (!rawData.length) {
     return (
-      <View style={{ padding: 20 }}>
+      <View style={styles.container}>
         <Text>No hay datos para graficar</Text>
       </View>
     );
   }
 
-  // Suavizar datos (ventana de 5 muestras)
-  const chartData = smoothData(rawData, 20);
-
-  // Dimensiones
-  const screenWidth = Dimensions.get('window').width - 40;
+  const chartData = smoothData(rawData, 10);
   const spacing = screenWidth / chartData.length;
 
   return (
-    <View style={{ paddingVertical: 20, paddingHorizontal: 20 }}>
-      <Text style={{ fontSize: 16, textAlign: 'center', marginBottom: 8 }}>
-        Velocidad (m/s) vs Tiempo (s)
-      </Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>Velocidad (m/s) vs Tiempo (s)</Text>
       <LineChart
         data={chartData}
-        width={screenWidth}
-        height={220}
+        width={screenWidth - 32} // dejar margen horizontal pero escalar con pantalla
+        height={screenWidth > 600 ? 300 : 220} // si es tablet, hacerlo más alto
         spacing={spacing}
         initialSpacing={0}
         hideDataPoints={false}
         hideRules={false}
-        isBezier={true}        // curva suave
+        isBezier={true}
         xAxisLabelTextStyle={{ fontSize: 10 }}
         yAxisLabelTextStyle={{ fontSize: 10 }}
         yAxisSuffix=" m/s"
@@ -58,3 +53,17 @@ export default function SummaryChart({ data = [] }) {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+});
